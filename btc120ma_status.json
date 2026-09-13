@@ -1,0 +1,16 @@
+{
+  "updated_at": "2026-09-13T17:05:39.344194",
+  "position": "holding",
+  "current_price_krw": 105083000,
+  "ma120_krw": 99010450,
+  "buy_line_krw": 100990659,
+  "gap_pct": 6.13,
+  "avg_buy_price_krw": 105119000,
+  "unrealized_pct": -0.03,
+  "last_buy_at": "2026-09-13T09:39:00",
+  "last_sell_at": null,
+  "last_sell_profit_pct": null,
+  "trade_count": 1,
+  "action_taken": false,
+  "action_message": null
+}

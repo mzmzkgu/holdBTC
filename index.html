@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC 120일선 봇 · 계기판</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #10141b;
+    --panel: #1a212c;
+    --panel-border: #2a3245;
+    --brass: #c7a259;
+    --brass-dim: #7c6636;
+    --text: #ece7da;
+    --text-muted: #8794a8;
+    --profit: #63b083;
+    --loss: #c1594f;
+    --neutral: #c7a259;
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: radial-gradient(circle at 50% 0%, #171d27 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: var(--font-mono);
+    display:flex;
+    justify-content:center;
+    padding: 28px 14px 60px;
+    min-height:100vh;
+  }
+  .wrap{ width:100%; max-width:460px; }
+
+  .eyebrow{
+    font-size:11px; letter-spacing:.18em; color: var(--brass);
+    text-transform:uppercase; margin-bottom:6px;
+  }
+  h1{
+    font-family: var(--font-display); font-weight:700;
+    font-size:22px; margin:0 0 4px;
+  }
+  .updated{ font-size:12px; color: var(--text-muted); }
+  .updated button{
+    background:none; border:1px solid var(--panel-border); color:var(--text-muted);
+    font-family: var(--font-mono); font-size:11px; padding:3px 8px; border-radius:20px;
+    margin-left:8px; cursor:pointer;
+  }
+  .updated button:hover{ border-color: var(--brass); color: var(--brass); }
+  .updated button:focus-visible{ outline: 2px solid var(--brass); outline-offset:2px; }
+
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-top:16px;
+  }
+
+  /* 이격도 게이지 */
+  .gap-gauge{ margin-top:4px; }
+  .gap-title{
+    font-size:10px; letter-spacing:.16em; color: var(--brass-dim);
+    text-transform:uppercase; text-align:center; margin-bottom:10px;
+  }
+  .gap-track{
+    position:relative; height:14px; border-radius:8px; overflow:visible;
+    background: linear-gradient(90deg,
+      var(--loss) 0%, var(--loss) 40%,
+      var(--brass) 40%, var(--brass) 48%,
+      var(--profit) 48%, var(--profit) 100%);
+  }
+  .gap-marker{
+    position:absolute; top:-6px; width:2px; height:26px; background: var(--text);
+    transform: translateX(-1px); transition: left .8s ease;
+  }
+  .gap-marker::after{
+    content: attr(data-label);
+    position:absolute; top:-20px; left:50%; transform:translateX(-50%);
+    font-size:11px; font-weight:700; color: var(--text); white-space:nowrap;
+  }
+  .gap-scale{ display:flex; justify-content:space-between; margin-top:6px; font-size:9.5px; color: var(--text-muted); }
+
+  .stats{ margin-top:22px; }
+  .stat-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding:9px 0; border-bottom:1px solid var(--panel-border);
+  }
+  .stat-row:last-child{ border-bottom:none; }
+  .stat-label{ font-size:11px; color: var(--text-muted); letter-spacing:.06em; }
+  .stat-value{ font-size:15px; font-weight:500; }
+  .stat-value.big{ font-size:20px; font-weight:700; }
+  .pos{ color: var(--profit); }
+  .neg{ color: var(--loss); }
+
+  .sub-stats{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px;
+  }
+  .sub-stat{ text-align:center; }
+  .sub-stat .v{ font-size:12.5px; color: var(--text); }
+  .sub-stat .l{ font-size:9px; color: var(--text-muted); letter-spacing:.08em; margin-top:2px; text-transform:uppercase; }
+
+  .status-bar{
+    margin-top:18px; display:flex; align-items:center; gap:8px;
+    font-size:12px; color: var(--text-muted);
+  }
+  .status-dot{ width:8px; height:8px; border-radius:50%; background: var(--text-muted); flex-shrink:0; }
+  .status-dot.holding{ background: var(--profit); box-shadow:0 0 6px var(--profit); }
+  .status-dot.cash{ background: var(--brass); box-shadow:0 0 6px var(--brass); }
+
+  .footer-note{
+    margin-top:18px; font-size:10.5px; color: var(--text-muted); opacity:.7; line-height:1.5;
+  }
+  .error-box{
+    margin-top:16px; padding:14px; border:1px dashed var(--loss); border-radius:10px;
+    color: var(--loss); font-size:12px; display:none;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">BTC · TREND FOLLOWING BOT</div>
+  <h1>120일선 추세추종 계기판</h1>
+  <div class="updated" id="updatedLine">불러오는 중...<button id="refreshBtn" aria-label="새로고침">새로고침</button></div>
+
+  <div class="panel">
+    <div class="gap-gauge">
+      <div class="gap-title">현재가 vs 120일 이평선</div>
+      <div class="gap-track">
+        <div class="gap-marker" id="gapMarker" data-label="--" style="left:50%"></div>
+      </div>
+      <div class="gap-scale">
+        <span>-10%</span><span>MA120</span><span>+2%(매수선)</span><span>+15%</span>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-row">
+        <div class="stat-label">현재가</div>
+        <div class="stat-value" id="curPrice">-</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-label">120일 이평선</div>
+        <div class="stat-value" id="maVal">-</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-label">매수기준선(+2%)</div>
+        <div class="stat-value" id="buyLine">-</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-label" id="profitLabel">현재 수익률</div>
+        <div class="stat-value big" id="profitVal">-</div>
+      </div>
+    </div>
+
+    <div class="sub-stats">
+      <div class="sub-stat"><div class="v" id="lastBuyVal">-</div><div class="l">마지막 매수</div></div>
+      <div class="sub-stat"><div class="v" id="lastSellVal">-</div><div class="l">마지막 매도</div></div>
+      <div class="sub-stat"><div class="v" id="tradeCountVal">-</div><div class="l">누적 매매</div></div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <div id="statusText">상태 확인 중...</div>
+    </div>
+  </div>
+
+  <div class="error-box" id="errorBox">데이터를 불러오지 못했어. 잠시 후 자동으로 다시 시도할게. (btc120ma_status.json 경로 확인 필요)</div>
+
+  <div class="footer-note">봇이 매일 09:15에 실행될 때마다 상태를 git에 올리고, 이 페이지는 5분마다 그 값을 다시 읽어와. 실시간 시세가 아니라 "최근 봇 실행 시점(전일 확정 종가)" 기준 값이야.</div>
+</div>
+
+<script>
+const JSON_URL = './btc120ma_status.json';
+const REFRESH_MS = 5 * 60 * 1000;
+let lastUpdatedAt = null;
+
+const GAP_MIN = -10, GAP_MAX = 15;
+
+function fmtWon(n){
+  if(n === null || n === undefined) return '-';
+  return Math.round(n).toLocaleString('ko-KR') + '원';
+}
+function fmtPct(n){
+  if(n === null || n === undefined) return '-';
+  const s = n > 0 ? '+' : '';
+  return `${s}${n.toFixed(2)}%`;
+}
+function relTime(iso){
+  if(!iso) return '없음';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diffMs / 60000);
+  if(min < 1) return '방금 전';
+  if(min < 60) return `${min}분 전`;
+  const hr = Math.floor(min/60);
+  if(hr < 24) return `${hr}시간 전`;
+  return `${Math.floor(hr/24)}일 전`;
+}
+function fmtDateShort(iso){
+  if(!iso) return '없음';
+  const d = new Date(iso);
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+async function loadData(){
+  try{
+    const res = await fetch(JSON_URL + '?t=' + Date.now());
+    if(!res.ok) throw new Error('fetch failed');
+    const d = await res.json();
+    render(d);
+    document.getElementById('errorBox').style.display = 'none';
+  }catch(e){
+    document.getElementById('errorBox').style.display = 'block';
+  }
+}
+
+function render(d){
+  lastUpdatedAt = d.updated_at;
+  document.getElementById('updatedLine').innerHTML =
+    `업데이트: ${relTime(d.updated_at)}<button id="refreshBtn" aria-label="새로고침">새로고침</button>`;
+  document.getElementById('refreshBtn').addEventListener('click', loadData);
+
+  // 이격도 게이지
+  const gap = d.gap_pct ?? 0;
+  const f = Math.max(0, Math.min(1, (gap - GAP_MIN) / (GAP_MAX - GAP_MIN)));
+  const marker = document.getElementById('gapMarker');
+  marker.style.left = `${(f*100).toFixed(1)}%`;
+  marker.setAttribute('data-label', fmtPct(gap));
+
+  // 가격 정보
+  document.getElementById('curPrice').textContent = fmtWon(d.current_price_krw);
+  document.getElementById('maVal').textContent = fmtWon(d.ma120_krw);
+  document.getElementById('buyLine').textContent = fmtWon(d.buy_line_krw);
+
+  // 수익률 (보유중이면 평가손익, 현금이면 최근 매도 수익률)
+  const profitLabel = document.getElementById('profitLabel');
+  const profitVal = document.getElementById('profitVal');
+  let pct;
+  if(d.position === 'holding'){
+    profitLabel.textContent = '평가손익 (미실현)';
+    pct = d.unrealized_pct;
+  } else {
+    profitLabel.textContent = '최근 매도 수익률 (실현)';
+    pct = d.last_sell_profit_pct;
+  }
+  profitVal.textContent = fmtPct(pct);
+  profitVal.className = 'stat-value big ' + (pct >= 0 ? 'pos' : (pct < 0 ? 'neg' : ''));
+
+  // 마지막 매수/매도
+  document.getElementById('lastBuyVal').textContent = fmtDateShort(d.last_buy_at);
+  document.getElementById('lastSellVal').textContent = fmtDateShort(d.last_sell_at);
+  document.getElementById('tradeCountVal').textContent = d.trade_count ?? 0;
+
+  // 상태
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot ' + (d.position === 'holding' ? 'holding' : 'cash');
+  if(d.action_taken && d.action_message){
+    txt.textContent = '오늘의 액션: ' + d.action_message.split('\n')[0].replace(/[🔴🟢]/g,'').trim();
+  } else {
+    txt.textContent = `오늘의 액션: 관망 (${d.position === 'holding' ? '보유중' : '현금'})`;
+  }
+}
+
+loadData();
+setInterval(loadData, REFRESH_MS);
+setInterval(() => { if(lastUpdatedAt) document.getElementById('updatedLine').firstChild.textContent = `업데이트: ${relTime(lastUpdatedAt)}`; }, 30000);
+</script>
+</body>
+</html>
