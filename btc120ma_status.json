@@ -1,16 +1,16 @@
 {
-  "updated_at": "2026-11-06T09:15:12.200553",
+  "updated_at": "2026-11-07T09:15:04.227157",
   "position": "cash",
-  "current_price_krw": 103257000,
-  "ma120_krw": 103662925,
-  "buy_line_krw": 105736184,
-  "gap_pct": -0.39,
+  "current_price_krw": 103381000,
+  "ma120_krw": 103738458,
+  "buy_line_krw": 105813228,
+  "gap_pct": -0.34,
   "avg_buy_price_krw": null,
   "unrealized_pct": null,
   "last_buy_at": "2026-09-13T09:39:00",
   "last_sell_at": "2026-11-06T09:15:12.170256",
   "last_sell_profit_pct": -1.77,
   "trade_count": 2,
-  "action_taken": true,
-  "action_message": "🔴 BTC 매도\n103,257,000원 · 517,925원 · 수익률 -1.77%"
+  "action_taken": false,
+  "action_message": null
 }
